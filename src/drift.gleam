@@ -7,8 +7,10 @@ import simplifile
 pub fn main() {
   let pdf =
     new()
-    |> page([text("Hello pdf!", #(100, 700))])
-    |> page([text_with_font("Goodbye", #(200, 300), Helvetica)])
+    |> page([page_a4()], [
+      text([font_helvetica(), font_12()], "Hello pdf!", #(100, 700)),
+    ])
+    |> page([], [text([], "Goodbye", #(200, 300))])
 
   let filepath = "./priv/test.pdf"
   let assert Ok(_) = simplifile.delete(filepath)
@@ -23,34 +25,58 @@ type Font {
   Helvetica
 }
 
+type TextOption {
+  TextFont(font: Font)
+  TextFontSize(points: Int)
+  TextAngle(degrees: Int)
+  TextAlign(align: String)
+  // left, right, justify etc
+}
+
+type PageOption {
+  PageFont(font: Font)
+  PageSize(size: PageSize)
+}
+
 type Element {
-  TextElement(text: String, position: #(Int, Int))
-  TextElementWithFont(text: String, position: #(Int, Int), font: Font)
+  TextElement(text: String, position: #(Int, Int), options: List(TextOption))
 }
 
 type Page {
-  Page(content: List(Element))
+  Page(content: List(Element), options: List(PageOption))
 }
 
 type PDF {
   PDF(pages: List(Page))
 }
 
+fn page_a4() {
+  PageSize(A4)
+}
+
+fn font_helvetica() {
+  TextFont(Helvetica)
+}
+
+fn font_12() {
+  TextFontSize(12)
+}
+
 fn new() -> PDF {
   PDF([])
 }
 
-fn page(pdf: PDF, elements: List(Element)) -> PDF {
-  let page = Page(elements)
+fn page(pdf: PDF, config: List(PageOption), elements: List(Element)) -> PDF {
+  let page = Page(elements, config)
   PDF([page, ..pdf.pages])
 }
 
-fn text(text: String, position: #(Int, Int)) -> Element {
-  TextElement(text, position)
-}
-
-fn text_with_font(text: String, position: #(Int, Int), font: Font) -> Element {
-  TextElementWithFont(text, position, font)
+fn text(
+  config: List(TextOption),
+  text: String,
+  position: #(Int, Int),
+) -> Element {
+  TextElement(text, position, config)
 }
 
 fn render(pdf: PDF) -> String {
